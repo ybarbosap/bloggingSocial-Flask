@@ -1,0 +1,21 @@
+{% extends 'base.html' %}]
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{%block title%}Flask{%endblock%}
+
+
+{%block page_content%}
+
+<div class="page-header">
+    <h1>Olá {% if name %} {{name}} {% else %} Estranho {%endif%}</h1>
+    
+    {% if not known %}
+    <p>Prazer em conhece-lo</p>
+    {% else %}
+    <p>Feliz em revê-lo</p>
+    {% endif %}
+</div>
+<!--O método wtf.quick_from() recebe um objeto de formilário e o renderiza no templante-->
+{{wtf.quick_form(form)}}
+
+{%endblock%}

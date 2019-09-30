@@ -1,0 +1,54 @@
+{% extends 'bootstrap/base.html' %}
+
+{% block title %}Flask{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+{{ moment.include_moment() }} <!-- carregando a biblioteca do Flask-Moment -->
+{{ moment.locale('pt') }}
+
+{% endblock %}
+
+{%block head%}
+{{ super() }}
+
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<link rel="icon"  href="{{url_for('static', filename='favicon.ico')}}" type="image/x-icon">
+
+{%endblock%}
+
+{% block navbar %}
+
+<div class="navbar-inverse" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle"
+            data-toggle="'collapse" data-target=".navbar-collapese">
+                <span class="sr-only">Toggle navigation</span>
+            </button>
+            <a class="navbar-brand" href="/" >Flask</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="/user/Yuri">User</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    {% for mensagem in get_flashed_messages() %}
+    <div class="alert alert-warning">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {{ mensagem }}
+    </div>
+    {% endfor %}
+    {%block page_content%} {%endblock%}
+</div>
+
+{% endblock %}
