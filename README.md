@@ -1,0 +1,1 @@
+Construção de uma plicação baseada no livro: Desenvolvimento Web com Flask do autor: Miguel Grinberg
