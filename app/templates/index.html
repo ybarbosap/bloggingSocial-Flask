@@ -7,15 +7,12 @@
 {%block page_content%}
 
 <div class="page-header">
-    <h1>Olá {% if name %} {{name}} {% else %} Estranho {%endif%}</h1>
-    
-    {% if not known %}
-    <p>Prazer em conhece-lo</p>
+    <h1>Olá,
+    {% if current_user.is_authenticated %}
+        {{ current_user.username }}
     {% else %}
-    <p>Feliz em revê-lo</p>
-    {% endif %}
+        Visitante
+    {% endif %}!</h1>
 </div>
-<!--O método wtf.quick_from() recebe um objeto de formilário e o renderiza no templante-->
-{{wtf.quick_form(form)}}
 
 {%endblock%}

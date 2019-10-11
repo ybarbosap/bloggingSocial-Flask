@@ -31,7 +31,22 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="/user/Yuri">User</a></li>
+                <li><a href="/user/Yuri">Home</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                
+                <!-- Resumo sobre current_user  
+                    A variável current_user é definda pelo Flask-login e fica disponível para templates e views
+                Essa variável contem o usuário logado no momento ou um objeto proxy para usuário anônimo ( não logado)
+                a propriedade is_authenticated de current_user verifica a existência de usuário logado-->
+                
+                {% if current_user.is_authenticated %}
+                <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
+                {% else %}
+                <li><a href="{{ url_for('auth.login') }}">login</a></li>
+                {% endif %}
+            
+            
             </ul>
         </div>
     </div>
