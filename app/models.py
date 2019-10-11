@@ -1,6 +1,8 @@
 from app import db, loginManager
 from werkzeug import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from flask import current_app
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -25,13 +27,36 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
                                     # especifica que esta coluna deve ser interpretada   
                                     # como tendo valores de de id da tabela 'roles'
+    confirmed = db.Column(db.Boolean, default=False)
+
+    # Confirmação de email
+    def generate_confirmation_token(self, expiration = 3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({ 'confirm': self.id }).decode('utf-8')     
+    
+    def confirm(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        
+        try:
+            data = s.loads(token.encode('utf-8'))
+        except:
+            return False
+        
+        if data.get('confirm') != self.id:
+            return False
+        
+        self.confirmed = True
+        db.session.add(self)
+
+        return True
+
 
     # tratamento de erro para consulta a password
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
+  
 
-    
     @password.setter
     def password(self, password):
         # cria uma senha criptografada
@@ -48,8 +73,24 @@ class User(UserMixin, db.Model):
     @loginManager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-    """
-    função para carregar dados de usuário, o decorador .user_loader é uasdo para registrar a função
-    junto ao Flask-login que a chamará quando precisar obter informações do usuário.
-    query.get() retornara um obejto de usuário ou None 
-    """
+
+
+
+
+"""
+
+função para carregar dados de usuário, o decorador .user_loader é uasdo para registrar a função
+junto ao Flask-login que a chamará quando precisar obter informações do usuário.
+query.get() retornara um obejto de usuário ou None 
+
+"""
+
+"""
+    -- Confirmação do usuário
+O construtor de TimedJSONWebSignatureSerializer aceita uma chave que em Flask pode ser a SECRET_KEY.
+O método dumps() gera uma assinatura cripitografada, o argumento expiration define um tempo expresso 
+em segundos para o token expirar. 
+Para decodificar o token o TimedJSONWebSignatureSerializer disponibiliza o loads() que confere a 
+assinatura e o prazo de validade, se ambos forem válidos, devolve os dados originais.
+
+"""

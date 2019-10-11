@@ -10,6 +10,8 @@ from ..import db
 from app.auth.forms import (
     LoginForm, RegistrationForm
 )
+from ..email import send_email
+
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -50,11 +52,17 @@ def register():
     form = RegistrationForm()
 
     if form.validate_on_submit():
+        
         u = User(email=form.email.data, 
                 username=form.username.data, 
                 password=form.password.data)
         db.session.add(u)
         db.session.commit()
+
+        token = u.generate_confirmation_token()
+        send_email(u.email, 'Confirm Your Account', 'auth/email/confirm', user = u, token = token)
+
         flash('You can now login.')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('main.index'))
+    
     return render_template('auth/register.html', form=form)
