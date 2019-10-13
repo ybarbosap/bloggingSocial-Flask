@@ -19,14 +19,13 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 class User(UserMixin, db.Model):
+    
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique = True, index = True)# Index cria um índice para tornar as consultas mais eficientes
     username = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-                                    # especifica que esta coluna deve ser interpretada   
-                                    # como tendo valores de de id da tabela 'roles'
     confirmed = db.Column(db.Boolean, default=False)
 
     # Confirmação de email
