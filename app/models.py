@@ -1,8 +1,15 @@
-from app import db, loginManager
-from werkzeug import generate_password_hash, check_password_hash
-from flask_login import UserMixin
+from app import (
+    db, loginManager
+)
+from werkzeug import (
+    generate_password_hash, check_password_hash
+)
+from flask_login import (
+    UserMixin, AnonymousUserMixin, login_manager
+)
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
+from datetime import datetime
 
 
 class Permission:
@@ -61,6 +68,10 @@ class Role(db.Model):
     podendo ser chamado diretamente na classe <EX: Role.insert_roles() > ...Métodos estáticos não aceitam um argumento
     self como métodos de instância ( classmethod )
 
+    => line 80 : O construtor de User inicialmente chama os contrutores das classes-bases; se, objeto não tiver uma fu
+    nção de usuário definida, a função de Administrador ou a função default será atribuida, dependendo do endereço de 
+    email.
+
     """
     @staticmethod
     def insert_roles():
@@ -75,17 +86,19 @@ class Role(db.Model):
 
         for r in roles:
             role = Role.query.filter_by(name=r).first()
+            
             if role is None:
                 role = Role(name=r)
+            
             role.reset_permission()
+            
             for perm in roles[r]:
                 role.add_permission(perm)
-            role.default = (role.name == defaultRole)
+            
+            role.default = (role.name == default_role)
             db.session.add(role)
 
-        db.commit()
-
-
+        db.session.commit()
 
 
 class User(UserMixin, db.Model):
@@ -97,17 +110,34 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
-
         if self.role is None:
-            
             if self.email == current_app.config['FLASK_ADMIN']:
                 self.role = Role.query.filter_by(name='Administrator').first()
-
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
+
+ # tratamento de erro para consulta a password
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+  
+
+    @password.setter
+    def password(self, password):
+        # cria uma senha criptografada
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        # faz a comparação entre a senha do db e a senha fornecida para login
+        return check_password_hash(self.password_hash, password)
 
     # Confirmação de email
     def generate_confirmation_token(self, expiration = 3600):
@@ -130,29 +160,34 @@ class User(UserMixin, db.Model):
 
         return True
 
+    def can(self, perm):
+        return self.role is not None and self.role.has_permission(perm)
 
-    # tratamento de erro para consulta a password
-    @property
-    def password(self):
-        raise AttributeError('password is not a readable attribute')
-  
+    def is_administrator(self):
+        return self.can(Permission.ADMIN)
 
-    @password.setter
-    def password(self, password):
-        # cria uma senha criptografada
-        self.password_hash = generate_password_hash(password)
-
-    def verify_password(self, password):
-        # faz a comparação entre a senha do db e a senha fornecida para login
-        return check_password_hash(self.password_hash, password)
+    # last_seen é inicializado com o horário atual, mas deve ser atualizado sempre que o usuário acessar o site
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     def __repr__(self):
         return '<User %r>' % self.username
 
+class AnonymousUser(AnonymousUserMixin):
+    def can(self, permissions):
+        return False
+    
+    def is_administrator(self):
+        return False
 
-    @loginManager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
+login_manager.anonymous_user = AnonymousUser
+
+@loginManager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+   
 
 
 

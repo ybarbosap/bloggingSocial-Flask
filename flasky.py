@@ -7,6 +7,7 @@ app = createApp(os.getenv('FLASK_CONFIG') or 'default')
 migrate = Migrate(app, db)
 
 
+# Os processadores de contexto deixam as variáveis disponíveis a todos os templates durante a renderização
 @app.shell_context_processor
 def make_shel_context():
     return dict(db=db, User=User, Role=Role)

@@ -7,3 +7,10 @@ main = Blueprint('main', __name__)
 # a sintaxe '. import' é uma importação relativa que representa o modulo/pacote atual 
 from . import forms, views
 from ..import models
+
+# Processadores de contexto deixam variáveis disponíveis a todos os templates durante a renderização
+from ..models import Permission
+@main.app_context_processor
+def inject_permissions():
+    return dict(Permission=Permission)
+

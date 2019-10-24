@@ -112,8 +112,8 @@ def before_request():
 
     if current_user.is_authenticated \
         and not current_user.confirmed \
-            and request.blueprint != 'auth' \
-                and request.endpoint != 'static':
+        and request.blueprint != 'auth' \
+        and request.endpoint != 'static':
 
         return redirect( url_for( 'auth.unconfirmed' ) )
     
@@ -129,3 +129,18 @@ def unconfirmed():
         return redirect( url_for( 'main.index', name = current_user.name ) )
 
     return render_template( 'auth/unconfirmed.html')
+
+
+@auth.before_app_request
+def before_request():
+
+    # atualizar o campo last_seen sempre que o usuário fizer uma requisição
+    if current_user.is_authenticated:
+        current_user.ping()
+
+        # Caso usuário não esteje confirmado, redireciona para página 'unconfirmed' após atulizar last_seen
+        if not current_user.confirmed \
+            and request.endpoint \
+            and request.blueprint != 'auth' \
+            and request.endpoint != 'static':
+            return redirect( url_for('auth.unconfirmed') )
