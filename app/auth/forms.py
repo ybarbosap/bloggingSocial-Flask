@@ -1,5 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, ValidationError
+from wtforms import (
+    StringField, PasswordField, BooleanField, SubmitField, ValidationError, TextAreaField
+)
 from wtforms.validators import (
     DataRequired, Length, Email, Regexp, EqualTo
 ) 
@@ -13,7 +15,6 @@ class LoginForm(FlaskForm):
 
 
 class RegistrationForm(FlaskForm):
-    
     email = StringField('Email', validators=[DataRequired(), Length(1, 64), Email()])
     username = StringField('Username', validators=[
         DataRequired(), Length(1, 64),
@@ -38,6 +39,38 @@ class RegistrationForm(FlaskForm):
         if User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
 
-    # Quando um método é chamado com o prefixo valide_ seguide do nome de 
+
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField('Old password', validators=[DataRequired()])
+    password = PasswordField('New password', validators=[
+        DataRequired(), EqualTo('password2', message='Password must match.')
+    ])
+    password2 = PasswordField('Confirm new password', validators=[DataRequired()])
+    submit = SubmitField('Update password')
+
+
+class ChangeEmail(FlaskForm):
+    old_email = StringField('Old email', validators=[DataRequired()])
+    new_email = StringField('New email', validators=[DataRequired(),
+                            EqualTo('new_email2', message='Password must match.')])
+    password = PasswordField('Password')
+    submit = SubmitField('Update email.')
+
+
+class PasswordResetRequestForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(),
+                        Length(1, 64), Email()])
+    submit = SubmitField('Reset Password.')
+
+
+
+
+
+
+
+
+
+
+    # Quando um método é chamado com o prefixo valide_ seguido do nome de 
     # um campo, o método é chamado como qualquer outro validador 
     # incluso em validators=[]

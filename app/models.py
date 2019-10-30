@@ -1,14 +1,9 @@
-from app import (
-    db, loginManager
-)
-from werkzeug import (
-    generate_password_hash, check_password_hash
-)
-from flask_login import (
-    UserMixin, AnonymousUserMixin, login_manager
-)
+import hashlib
+from app import db, loginManager
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin, AnonymousUserMixin, login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app, request
 from datetime import datetime
 
 
@@ -20,45 +15,44 @@ class Permission:
     ADMIN = 16
 
 
-class Role(db.Model):
-    
+class Role(db.Model):    
     __tablename__ = 'roles'
     __table_args__ = {'extend_existing': True} 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
     default = db.Column(db.Boolean, default=False, index=True)
     permissions = db.Column(db.Integer)
-    
     # relacionamento: o atributo 'users' devolverá uma lista de usuários associados a esta função
-    users = db.relationship('User', backref='role')
+    users = db.relationship('User', backref='role', lazy='dynamic')
                             # Este primeiro parâmetro especifica quem esta do outro lado do relacionamento
                             # backref='role' acrescenta um atributo chamado 'role' ao modelo 'User'
 
+
     def __init__(self, **kwargs):
         super(Role, self).__init__(**kwargs)
-
         if self.permissions is None:
             self.permissions = 0
+
 
     def __repr__(self):
         return '<Role %r>' % self.name
 
-    def add_permission(self, perm):
 
+    def add_permission(self, perm):
         if not self.has_permission(perm):
             self.permissions += perm
 
-    def remove_permission(self, perm):
 
+    def remove_permission(self, perm):
         if self.has_permission(perm):
             self.permissions -+ perm
 
-    def reset_permission(self):
 
+    def reset_permission(self):
         self.permissions = 0
 
-    def has_permission(self, perm):
 
+    def has_permission(self, perm):
         return self.permissions & perm == perm
 
 
@@ -75,13 +69,11 @@ class Role(db.Model):
     """
     @staticmethod
     def insert_roles():
-
         roles = {
             'User' : [Permission.FOLLOW, Permission.COMMENT, Permission.WRITE],
             'Moderator' : [Permission.FOLLOW, Permission.COMMENT, Permission.WRITE, Permission.MODERATE],
             'Administrator' : [Permission.FOLLOW, Permission.COMMENT, Permission.WRITE, Permission.MODERATE, Permission.ADMIN]
         }
-        
         default_role = 'User'
 
         for r in roles:
@@ -102,8 +94,8 @@ class Role(db.Model):
 
 
 class User(UserMixin, db.Model):
-    
     __tablename__ = 'users'
+    __table_args__ = {'extend_existing': True} 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(64), unique = True, index = True)# Index cria um índice para tornar as consultas mais eficientes
     username = db.Column(db.String(64), unique=True, index=True)
@@ -115,6 +107,9 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    avatar_hash = db.Column(db.String(32))
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
+
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -123,6 +118,9 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(name='Administrator').first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
+        if self.email is not None and self.avatar_hash in None:
+            self.avatar_hash = self.gravatar_hash()
+
 
  # tratamento de erro para consulta a password
     @property
@@ -144,6 +142,40 @@ class User(UserMixin, db.Model):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({ 'confirm': self.id }).decode('utf-8')     
     
+
+    def generate_email_change_token(self, new_email, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps(
+            {'change_email':self.id, 'new_email':new_email}
+        ).decode('utf-8')
+
+
+    def generate_reset_token(self, expiration=3600):
+        # Gera um JSONs (JSON WEB SIGNATURES) com time de encerrametno
+        # ... o dumps() gera uma assinatura com o id passado
+        # ... e retorna os dados e a assinatura como uma string
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'reset':self.id}).decode('utf-8')
+
+    def change_email(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token.encode('utf-8'))
+        except:
+            return False
+        if data.get('change_email') != self.id:
+            return False
+        new_email = data.get('new_email')
+        if new_email is None:
+            return False
+        if self.query.filter_by(email=new_email).first() is not None:
+            return False
+        self.email = new_email
+        self.avatar_hash = self.gravatar_hash()
+        db.session.add(self)
+        return True
+
+
     def confirm(self, token):
         s = Serializer(current_app.config['SECRET_KEY'])        
         
@@ -157,42 +189,53 @@ class User(UserMixin, db.Model):
         
         self.confirmed = True
         db.session.add(self)
-
         return True
+
 
     def can(self, perm):
         return self.role is not None and self.role.has_permission(perm)
 
+
     def is_administrator(self):
         return self.can(Permission.ADMIN)
+
 
     # last_seen é inicializado com o horário atual, mas deve ser atualizado sempre que o usuário acessar o site
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
 
+
     def __repr__(self):
         return '<User %r>' % self.username
 
-class AnonymousUser(AnonymousUserMixin):
-    def can(self, permissions):
-        return False
-    
-    def is_administrator(self):
-        return False
 
-login_manager.anonymous_user = AnonymousUser
+    def gravatar_hash(self):
+        return hashlib.md5(self.email.lower().encode('utf-8')).hexdigest()
+    
+    
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        if request.is_secure:
+            gravatar_url = 'https://secure.gravatar.com/avatar'
+        else:
+            gravatar_url = 'https://www.gravatar.com/avatar'
+
+        gravatar_hash = self.gravatar_hash or self.gravatar_hash()
+        return f'{gravatar_url}/{gravatar_hash}?s={size}&d={default}&r={rating}'
+
+
 
 @loginManager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-   
 
-
-
-
-
+class Post(db.Model):
+    __tablename__='posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 """
 
