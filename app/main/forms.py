@@ -1,10 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import (
-    StringField, SubmitField, TextAreaField, BooleanField, SelectField
-)
-from wtforms.validators import (
-    DataRequired, Length, Email, Regexp
-)
+from wtforms import StringField, SubmitField, TextAreaField, BooleanField, SelectField
+from wtforms.validators import DataRequired, Length, Email, Regexp
+from ..models import Role
 
 class NameForm(FlaskForm):
     name = StringField('name', validators=[DataRequired()])
