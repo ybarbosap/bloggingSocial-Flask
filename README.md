@@ -3,4 +3,5 @@ MicroBlog
 - Funções de Adm
 - Rotas com autenticação
 - Postagens  
+- Paginação
 - Seguidores

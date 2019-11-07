@@ -6,19 +6,14 @@ from .models import Permission
 # ---- Rever futuramente para entender melhor esse código ---- #
 def permission_required(permission):
     
-    def decorator(f):
-        
+    def decorator(f):   
         @wraps(f)
         def decorated_function(*args, **kwargs):
-
             # o código de status HTTP 403 retorna "Forbidden ( Proibido )"
             if not current_user.can(permission):
                 abort(403)
-            
             return f(*args, **kwargs)
-
         return decorated_function
-
     return decorator
 
 
