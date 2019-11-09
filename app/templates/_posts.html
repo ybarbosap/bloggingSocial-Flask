@@ -14,6 +14,26 @@
                 <a href="{{ url_for('.user', username=post.author.username) }}">{{ post.author.username }}</a>
             </div>
             <div class="post-body">{{ post.body }}</div>
+            <div class="post-footer">
+                <a href="{{ url_for('.post', id=post.id) }}">
+                    <span class="label label-default">Permalink</span>
+                </a>
+                {% if current_user == post.author %}
+                <a href="{{ url_for('.edit_post', id=post.id) }}">
+                    <span class="label label-primary">Edit Post</span>
+                </a>
+                <a href="{{ url_for('.delet_post', id=post.id) }}">
+                    <span class="label label-primary">Delete Post</span>
+                </a>
+                {% elif current_user.is_administrator() %}
+                <a href="{{ url_for('.edit_post', id=post.id) }}">
+                    <span class="label label-danger">Edit Post [ADMIN]</span>
+                </a>
+                <a href="{{ url_for('.delet_post', id=post.id) }}">
+                    <span class="label label-danger">Delete Post [ADMIN]</span>
+                </a>
+                {% endif %}
+            </div>
         </div>
     </li>
     {% endfor %}

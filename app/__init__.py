@@ -6,6 +6,7 @@ from flask_mail import Mail
 from flask_moment import Moment
 from config import config
 from flask_login import LoginManager
+from flask_pagedown import PageDown
 
 # Instâncias
 bootstrap = Bootstrap()
@@ -13,6 +14,7 @@ db = SQLAlchemy()
 moment = Moment()
 mail = Mail()
 loginManager = LoginManager()
+pagedown = PageDown()
 
 #Configura um endpoint ( rota ) de redirecionamento para página de login quando usuário anônimo tentar acessar uma página protegida.
 loginManager.login_view = 'auth/login'
@@ -39,5 +41,6 @@ def createApp(config_name):
     moment.init_app(app)
     db.init_app(app)
     loginManager.init_app(app)
+    pagedown.init_app(app)
 
     return app

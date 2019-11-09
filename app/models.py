@@ -215,13 +215,10 @@ class User(UserMixin, db.Model):
     
     
     def gravatar(self, size=100, default='identicon', rating='g'):
-        if request.is_secure:
-            gravatar_url = 'https://secure.gravatar.com/avatar'
-        else:
-            gravatar_url = 'https://www.gravatar.com/avatar'
-
-        gravatar_hash = self.gravatar_hash or self.gravatar_hash()
-        return f'{gravatar_url}/{gravatar_hash}?s={size}&d={default}&r={rating}'
+        url = 'https://secure.gravatar.com/avatar'
+        hash = self.avatar_hash or self.gravatar_hash()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
 
 
 

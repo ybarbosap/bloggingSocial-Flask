@@ -4,6 +4,10 @@
 
 {%block title%}Flask{%endblock%}
 
+{% block scripts %}
+{{super()}}
+{{pagedown.include_pagedown()}}
+{% endblock %}
 
 {%block page_content%}
 
