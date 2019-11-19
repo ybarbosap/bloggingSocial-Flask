@@ -60,3 +60,8 @@ class PostForm(FlaskForm):
 class DeletePost(FlaskForm):
     confirm = BooleanField('Confirm')
     submit = SubmitField('Delet')
+
+
+class CommentForm(FlaskForm):
+    body = StringField('', validators=[DataRequired()])
+    btn = SubmitField('Submit')

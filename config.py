@@ -15,7 +15,9 @@ class Config():
     FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     FLASKY_POSTS_PER_PAGE = 20
-
+    FLASKY_COMMENTS_PER_PAGE = 20
+    FLASK_FOLLOWERS_PER_PAGE = 20
+    
     @staticmethod
     def init_app(app):
         pass
